@@ -74,49 +74,90 @@ void print_history() {
     }
 }
 
-void handle_arrow_keys() {
-    struct termios oldt, newt;
-    tcgetattr(STDIN_FILENO, &oldt);
-    newt = oldt;
-    newt.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+void enable_raw_mode(struct termios *orig_termios) {
+    struct termios raw = *orig_termios;
+    raw.c_lflag &= ~(ICANON | ECHO); // Disable canonical mode and echo
+    tcsetattr(STDIN_FILENO, TCSANOW, &raw);
+}
 
-    char c;
-    read(STDIN_FILENO, &c, 1);
-    if (c == '[') {
-        read(STDIN_FILENO, &c, 1);
-        if (c == 'A') {  // Up arrow key
-            if (history_count > 0) {
-                current_history_index = (current_history_index - 1 + HISTORY_SIZE) % HISTORY_SIZE;
-                if (current_history_index >= 0 && current_history_index < history_count) {
-                    printf("\r%s %s", history[current_history_index], "                                             ");
-                }
-            }
-        } else if (c == 'B') {  // Down arrow key
-            if (history_count > 0) {
-                current_history_index = (current_history_index + 1) % HISTORY_SIZE;
-                if (current_history_index >= 0 && current_history_index < history_count) {
-                    printf("\r%s %s", history[current_history_index], "                                             ");
-                }
-            }
-        }
-    }
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+void disable_raw_mode(struct termios *orig_termios) {
+    tcsetattr(STDIN_FILENO, TCSANOW, orig_termios);
 }
 
 int main() {
     char prompt[50];
     load_prompt(prompt);
+    struct termios orig_termios;
+    tcgetattr(STDIN_FILENO, &orig_termios);
 
     while (1) {
-        char input[50];
-        
+        char input[50] = "";
+        int input_len = 0;
+        current_history_index = history_count;
+
         // Print the current prompt
         printf("%s ", prompt);
+        fflush(stdout);
 
-        // Get user input
-        fgets(input, sizeof(input), stdin);
-        input[strcspn(input, "\n")] = 0;  // Remove the newline character from input
+        // Enable raw mode to read character-by-character
+        enable_raw_mode(&orig_termios);
+
+        char c;
+        while (1) {
+            read(STDIN_FILENO, &c, 1);
+
+            if (c == '\n') { // Enter key
+                input[input_len] = '\0';
+                printf("\n");
+                break;
+            } else if (c == 127) { // Backspace key
+                if (input_len > 0) {
+                    input_len--;
+                    printf("\b \b");
+                }
+            } else if (c == 27) { // Arrow keys (escape sequence)
+                read(STDIN_FILENO, &c, 1);
+                if (c == '[') {
+                    read(STDIN_FILENO, &c, 1);
+                    if (c == 'A') { // Up arrow key
+                        if (history_count > 0) {
+                            current_history_index = (current_history_index - 1 + HISTORY_SIZE) % HISTORY_SIZE;
+                            if (current_history_index >= 0 && current_history_index < history_count) {
+                                // Clear current input
+                                printf("\33[2K\r%s %s", prompt, history[current_history_index]);
+                                strncpy(input, history[current_history_index], 50);
+                                input_len = strlen(input);
+                                fflush(stdout);
+                            }
+                        }
+                    } else if (c == 'B') { // Down arrow key
+                        if (history_count > 0) {
+                            current_history_index = (current_history_index + 1) % HISTORY_SIZE;
+                            if (current_history_index >= 0 && current_history_index < history_count) {
+                                // Clear current input
+                                printf("\33[2K\r%s %s", prompt, history[current_history_index]);
+                                strncpy(input, history[current_history_index], 50);
+                                input_len = strlen(input);
+                                fflush(stdout);
+                            } else {
+                                // Clear current input
+                                printf("\33[2K\r%s ", prompt);
+                                input_len = 0;
+                                fflush(stdout);
+                            }
+                        }
+                    }
+                }
+            } else { // Regular character input
+                if (input_len < (int)(sizeof(input) - 1)) {
+                    input[input_len++] = c;
+                    printf("%c", c);
+                }
+            }
+        }
+
+        // Disable raw mode
+        disable_raw_mode(&orig_termios);
 
         // Add command to history
         if (strlen(input) > 0) {
