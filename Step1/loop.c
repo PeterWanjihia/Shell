@@ -2,7 +2,10 @@
 #include <string.h>
 #include <time.h>
 
+#define PROMPT_FILE "prompt_setting.txt"
+
 char *token;
+
 void set_prompt(char *command, char *new_prompt){
     // The function expects "setprompt" as command followed by a new prompt name
     if (strcmp(command, "setprompt") == 0) {
@@ -20,11 +23,28 @@ void set_prompt(char *command, char *new_prompt){
             // Append '>' to the new prompt name
             snprintf(new_prompt, 50, "%s>", token);
         }
+        // Save the new prompt setting to a file
+        FILE *file = fopen(PROMPT_FILE, "w");
+        if (file != NULL) {
+            fprintf(file, "%s", new_prompt);
+            fclose(file);
+        }
+    }
+}
+
+void load_prompt(char *prompt) {
+    FILE *file = fopen(PROMPT_FILE, "r");
+    if (file != NULL) {
+        fgets(prompt, 50, file);
+        fclose(file);
+    } else {
+        strcpy(prompt, "$>");
     }
 }
 
 int main() {
-    char prompt[50] = "$";
+    char prompt[50];
+    load_prompt(prompt);
 
     while (1) {
         char input[50];
