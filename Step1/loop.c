@@ -4,9 +4,11 @@
 #include <ctype.h>
 #include <termios.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #define PROMPT_FILE "prompt_setting.txt"
-#define HISTORY_SIZE 5
+#define HISTORY_FILE "history.txt"
+#define HISTORY_SIZE 10
 
 char *token;
 char history[HISTORY_SIZE][50];
@@ -67,6 +69,29 @@ void add_to_history(const char *command) {
     history_count++;
 }
 
+void load_history() {
+    FILE *file = fopen(HISTORY_FILE, "r");
+    if (file != NULL) {
+        char line[50];
+        while (fgets(line, sizeof(line), file)) {
+            line[strcspn(line, "\n")] = 0;  // Remove newline character
+            add_to_history(line);
+        }
+        fclose(file);
+    }
+}
+
+void save_history() {
+    FILE *file = fopen(HISTORY_FILE, "w");
+    if (file != NULL) {
+        int start = (history_count > HISTORY_SIZE) ? history_count - HISTORY_SIZE : 0;
+        for (int i = start; i < history_count; i++) {
+            fprintf(file, "%s\n", history[i % HISTORY_SIZE]);
+        }
+        fclose(file);
+    }
+}
+
 void print_history() {
     int start = (history_count > HISTORY_SIZE) ? history_count - HISTORY_SIZE : 0;
     for (int i = start; i < history_count; i++) {
@@ -77,6 +102,8 @@ void print_history() {
 void enable_raw_mode(struct termios *orig_termios) {
     struct termios raw = *orig_termios;
     raw.c_lflag &= ~(ICANON | ECHO); // Disable canonical mode and echo
+    raw.c_cc[VMIN] = 1;
+    raw.c_cc[VTIME] = 0;
     tcsetattr(STDIN_FILENO, TCSANOW, &raw);
 }
 
@@ -87,6 +114,7 @@ void disable_raw_mode(struct termios *orig_termios) {
 int main() {
     char prompt[50];
     load_prompt(prompt);
+    load_history();
     struct termios orig_termios;
     tcgetattr(STDIN_FILENO, &orig_termios);
 
@@ -114,6 +142,7 @@ int main() {
                 if (input_len > 0) {
                     input_len--;
                     printf("\b \b");
+                    fflush(stdout);
                 }
             } else if (c == 27) { // Arrow keys (escape sequence)
                 read(STDIN_FILENO, &c, 1);
@@ -152,6 +181,7 @@ int main() {
                 if (input_len < (int)(sizeof(input) - 1)) {
                     input[input_len++] = c;
                     printf("%c", c);
+                    fflush(stdout);
                 }
             }
         }
@@ -177,6 +207,7 @@ int main() {
             }
         } else if (token != NULL && case_insensitive_compare(token, "exit")) {
             printf("Goodbye!\n");
+            save_history();  // Save history before exiting
             break;
         } else if (token != NULL && case_insensitive_compare(token, "history")) {
             print_history();
