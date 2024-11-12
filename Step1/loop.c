@@ -82,6 +82,12 @@ int main() {
         } else if (token != NULL && case_insensitive_compare(token, "exit")) {
             printf("Goodbye!\n");
             break;
+        } else if (token != NULL) {
+            // Handle other commands by printing each argument on a separate line
+            do {
+                printf("%s\n", token);
+                token = strtok(NULL, " ");
+            } while (token != NULL);
         }
     }
 
