@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <ctype.h>
 
 #define PROMPT_FILE "prompt_setting.txt"
 
@@ -42,6 +43,17 @@ void load_prompt(char *prompt) {
     }
 }
 
+int case_insensitive_compare(const char *str1, const char *str2) {
+    while (*str1 && *str2) {
+        if (tolower((unsigned char)*str1) != tolower((unsigned char)*str2)) {
+            return 0;
+        }
+        str1++;
+        str2++;
+    }
+    return *str1 == *str2;
+}
+
 int main() {
     char prompt[50];
     load_prompt(prompt);
@@ -67,6 +79,9 @@ int main() {
             } else {
                 printf("Error: No prompt specified\n");
             }
+        } else if (token != NULL && case_insensitive_compare(token, "exit")) {
+            printf("Goodbye!\n");
+            break;
         }
     }
 
