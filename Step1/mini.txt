@@ -98,3 +98,11 @@ Incremental Complexity: The problems increase in complexity step-by-step, allowi
 Solid Foundation: Completing these problems will give you a solid base in shell interaction,
  user input handling, and simple state management—skills that are transferable to more complex 
  phases of the shell project.
+
+
+I  am working on a course on web development html and css I have already  written 
+the introduction part its done already now I wanted to work on a simple web page sth 
+very solid ......a fulll web page with a navbar , with animations ...hero section and all
+ the other  components sth very very slid that students can follow through to the end ...generte
+   a very solid websirte that we will create ...a design ...its a single 
+page site with no functionality but its should be well designeed ..  

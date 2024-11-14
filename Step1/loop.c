@@ -27,10 +27,10 @@ void set_prompt(char *command, char *new_prompt) {
             time(&t);
             tm_info = localtime(&t);
             strftime(time_str, sizeof(time_str), "%H:%M:%S", tm_info);
-            snprintf(new_prompt, 50, "%s>", time_str);
+            snprintf(new_prompt, 50, "%s$", time_str);
         } else {
             // Append '>' to the new prompt name
-            snprintf(new_prompt, 50, "%s>", token);
+            snprintf(new_prompt, 50, "%s$", token);
         }
         // Save the new prompt setting to a file
         FILE *file = fopen(PROMPT_FILE, "w");
